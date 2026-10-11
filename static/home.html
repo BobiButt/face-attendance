@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Face Attendance — Home</title>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: radial-gradient(circle at top, #1e293b 0%, #0f172a 60%);
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container { width: 100%; max-width: 1000px; }
+
+    /* ---------- NAV (shared across all pages) ---------- */
+    .nav {
+      display: flex; gap: 10px; margin-bottom: 24px;
+      justify-content: center; flex-wrap: wrap;
+    }
+    .nav a {
+      color: #94a3b8; text-decoration: none;
+      padding: 8px 16px; border-radius: 8px;
+      background: #1e293b; font-size: 0.9rem;
+      transition: 0.2s;
+      border: 1px solid transparent;
+    }
+    .nav a:hover { background: #334155; color: #e2e8f0; }
+    .nav a.active {
+      background: #38bdf8; color: #0f172a; font-weight: 600;
+      border-color: #38bdf8;
+    }
+
+    h1 {
+      text-align: center; margin-bottom: 10px;
+      font-size: 2rem; color: #38bdf8;
+      letter-spacing: -0.5px;
+    }
+    .subtitle {
+      text-align: center; color: #94a3b8;
+      margin-bottom: 30px; font-size: 1rem;
+    }
+
+    .card {
+      background: #1e293b; border-radius: 14px; padding: 24px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      margin-bottom: 20px;
+      border: 1px solid #1e293b;
+    }
+    .card h2 {
+      color: #38bdf8; font-size: 1.15rem;
+      margin-bottom: 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+    }
+    .feature {
+      background: #0f172a; padding: 16px; border-radius: 10px;
+      border-left: 4px solid #38bdf8;
+      transition: transform 0.2s;
+    }
+    .feature:hover { transform: translateY(-2px); }
+    .feature h3 { font-size: 1rem; margin-bottom: 6px; }
+    .feature p { font-size: 0.85rem; color: #94a3b8; line-height: 1.5; }
+
+    /* ---------- Stats strip ---------- */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat {
+      background: #1e293b; border-radius: 10px; padding: 16px;
+      text-align: center;
+      border: 1px solid #334155;
+    }
+    .stat .num {
+      font-size: 1.8rem; font-weight: 700; color: #38bdf8;
+      display: block; line-height: 1;
+    }
+    .stat .lbl {
+      font-size: 0.78rem; color: #94a3b8;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin-top: 6px; display: block;
+    }
+
+    /* ---------- CTA buttons ---------- */
+    .cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+    .cta a {
+      flex: 1; min-width: 180px;
+      padding: 14px 20px; text-align: center;
+      text-decoration: none; border-radius: 10px;
+      font-weight: 600; font-size: 1rem;
+      transition: 0.2s;
+    }
+    .cta-register   { background: #38bdf8; color: #0f172a; }
+    .cta-register:hover   { background: #0ea5e9; transform: translateY(-2px); }
+    .cta-recognize  { background: #4ade80; color: #0f172a; }
+    .cta-recognize:hover  { background: #22c55e; transform: translateY(-2px); }
+    .cta-attendance { background: #fbbf24; color: #0f172a; }
+    .cta-attendance:hover { background: #f59e0b; transform: translateY(-2px); }
+
+    /* ---------- How-to steps ---------- */
+    .how-to { counter-reset: step; list-style: none; }
+    .how-to li {
+      counter-increment: step;
+      padding: 12px 0 12px 48px;
+      position: relative;
+      color: #cbd5e1; font-size: 0.92rem;
+      border-bottom: 1px solid #334155;
+    }
+    .how-to li:last-child { border-bottom: none; }
+    .how-to li::before {
+      content: counter(step);
+      position: absolute; left: 0; top: 50%;
+      transform: translateY(-50%);
+      width: 32px; height: 32px;
+      background: #38bdf8; color: #0f172a;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.85rem;
+    }
+
+    /* ---------- Registered users list ---------- */
+    .user-list { display: flex; flex-direction: column; gap: 8px; }
+    .user-row {
+      display: flex; justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      background: #0f172a; border-radius: 8px;
+      border: 1px solid #334155;
+    }
+    .user-row .info { display: flex; align-items: center; gap: 10px; }
+    .user-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+      color: #0f172a;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.9rem;
+    }
+    .user-name { font-weight: 600; font-size: 0.92rem; }
+    .user-meta { font-size: 0.75rem; color: #64748b; }
+
+    .btn-del {
+      background: #7f1d1d; color: #fca5a5;
+      border: none; border-radius: 6px;
+      padding: 6px 12px; font-size: 0.8rem;
+      font-weight: 600; cursor: pointer;
+      transition: 0.2s;
+    }
+    .btn-del:hover { background: #991b1b; color: #fff; }
+
+    .empty-users {
+      text-align: center; padding: 20px; color: #64748b;
+      font-size: 0.9rem;
+    }
+
+    /* ---------- Tech tags ---------- */
+    .tech-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .tech-tag {
+      background: #0f172a; color: #38bdf8;
+      padding: 4px 12px; border-radius: 20px;
+      font-size: 0.8rem; font-weight: 600;
+      border: 1px solid #1e40af;
+    }
+
+    footer {
+      text-align: center; color: #64748b;
+      font-size: 0.8rem; padding: 20px 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>🎥 Face Attendance System</h1>
+    <p class="subtitle">
+      Real-time face recognition attendance tracker — FastAPI + InsightFace + SQLite
+    </p>
+
+    <!-- NAV -->
+    <div class="nav">
+      <a href="/ui/home.html" class="active">🏠 Home</a>
+      <a href="/ui/index.html">📝 Register</a>
+      <a href="/ui/recognize.html">🎥 Recognize</a>
+      <a href="/ui/attendance.html">📋 Attendance</a>
+      <a href="/docs" target="_blank">📚 API Docs</a>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats">
+      <div class="stat">
+        <span class="num" id="statUsers">—</span>
+        <span class="lbl">Registered Users</span>
+      </div>
+      <div class="stat">
+        <span class="num" id="statRecords">—</span>
+        <span class="lbl">Attendance Records</span>
+      </div>
+      <div class="stat">
+        <span class="num" id="statToday">—</span>
+        <span class="lbl">Check-ins Today</span>
+      </div>
+      <div class="stat">
+        <span class="num" id="statStatus">●</span>
+        <span class="lbl">Server Status</span>
+      </div>
+    </div>
+
+    <!-- FEATURES -->
+    <div class="card">
+      <h2>✨ What This Project Does</h2>
+      <div class="features">
+        <div class="feature">
+          <h3>👤 Face Registration</h3>
+          <p>Register a person by capturing their face once. Stores a 512-d embedding — no raw images saved.</p>
+        </div>
+        <div class="feature">
+          <h3>🎥 Live Recognition</h3>
+          <p>Point your webcam and it recognizes you automatically every 1.5 seconds — no button press needed.</p>
+        </div>
+        <div class="feature">
+          <h3>📋 Auto Attendance Log</h3>
+          <p>Every successful recognition logs the name + timestamp. Smart 30-second deduplication.</p>
+        </div>
+        <div class="feature">
+          <h3>🔒 Privacy-First</h3>
+          <p>Face data is stored as a numerical vector, not a photo. Cannot be reversed back to a face.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOW TO -->
+    <div class="card">
+      <h2>🚀 How To Use</h2>
+      <ol class="how-to">
+        <li>Go to <b>Register</b>, allow camera, type name, capture, click Register.</li>
+        <li>Open <b>Recognize</b>, click Start Recognition, show your face.</li>
+        <li>The overlay turns green with your name when you're recognized.</li>
+        <li>Open <b>Attendance</b> to see the full history (auto-refreshes every 5s).</li>
+      </ol>
+      <div class="cta">
+        <a href="/ui/index.html" class="cta-register">📝 Register a Face</a>
+        <a href="/ui/recognize.html" class="cta-recognize">🎥 Start Recognizing</a>
+        <a href="/ui/attendance.html" class="cta-attendance">📋 View Attendance</a>
+      </div>
+    </div>
+
+    <!-- USERS LIST -->
+    <div class="card">
+      <h2>👥 Registered Users</h2>
+      <div id="userList" class="user-list">
+        <div class="empty-users">Loading...</div>
+      </div>
+    </div>
+
+    <!-- TECH -->
+    <div class="card">
+      <h2>🛠️ Tech Stack</h2>
+      <div class="tech-list">
+        <span class="tech-tag">FastAPI</span>
+        <span class="tech-tag">Uvicorn</span>
+        <span class="tech-tag">InsightFace buffalo_s</span>
+        <span class="tech-tag">OpenCV</span>
+        <span class="tech-tag">SQLite</span>
+        <span class="tech-tag">SQLAlchemy</span>
+        <span class="tech-tag">Vanilla JS</span>
+      </div>
+    </div>
+
+    <footer>Built with ❤️ BY Mubeen — FastAPI + InsightFace + SQLite</footer>
+  </div>
+
+  <script>
+    // ---------- Load stats ----------
+    async function loadStats() {
+      try {
+        const [usersRes, attRes] = await Promise.all([
+          fetch('/users'),
+          fetch('/attendance')
+        ]);
+        const users = await usersRes.json();
+        const att   = await attRes.json();
+
+        document.getElementById('statUsers').textContent   = users.length;
+        document.getElementById('statRecords').textContent = att.length;
+
+        // Count today's records
+        const today = new Date().toDateString();
+        const todayCount = att.filter(a =>
+          new Date(a.timestamp).toDateString() === today
+        ).length;
+        document.getElementById('statToday').textContent = todayCount;
+
+        document.getElementById('statStatus').textContent = '●';
+        document.getElementById('statStatus').style.color = '#4ade80';
+      } catch (err) {
+        console.error(err);
+        document.getElementById('statStatus').textContent = '●';
+        document.getElementById('statStatus').style.color = '#f87171';
+      }
+    }
+
+    // ---------- Load users ----------
+    async function loadUsers() {
+      const list = document.getElementById('userList');
+      try {
+        const res  = await fetch('/users');
+        const data = await res.json();
+
+        if (data.length === 0) {
+          list.innerHTML = '<div class="empty-users">No users yet. <a href="/ui/index.html" style="color:#38bdf8">Register one →</a></div>';
+          return;
+        }
+
+        list.innerHTML = '';
+        for (const u of data) {
+          const row = document.createElement('div');
+          row.className = 'user-row';
+          const initials = u.name.trim().split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+          row.innerHTML = `
+            <div class="info">
+              <div class="user-avatar">${initials}</div>
+              <div>
+                <div class="user-name">${u.name}</div>
+                <div class="user-meta">ID: ${u.id} · Added ${new Date(u.created_at).toLocaleDateString()}</div>
+              </div>
+            </div>
+            <button class="btn-del" data-id="${u.id}" data-name="${u.name}">🗑 Delete</button>
+          `;
+          list.appendChild(row);
+        }
+
+        // Attach delete handlers
+        list.querySelectorAll('.btn-del').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const id = btn.dataset.id;
+            const name = btn.dataset.name;
+            if (!confirm(`Delete user "${name}"?`)) return;
+
+            try {
+              const res = await fetch(`/users/${id}`, { method: 'DELETE' });
+              if (!res.ok) throw new Error('Delete failed');
+              loadUsers();
+              loadStats();
+            } catch (err) {
+              alert('Could not delete: ' + err.message);
+            }
+          });
+        });
+      } catch (err) {
+        list.innerHTML = '<div class="empty-users">Could not load users.</div>';
+        console.error(err);
+      }
+    }
+
+    loadStats();
+    loadUsers();
+    // Auto-refresh stats every 5s
+    setInterval(() => { loadStats(); loadUsers(); }, 5000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register — Face Attendance</title>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: radial-gradient(circle at top, #1e293b 0%, #0f172a 60%);
+      color: #e2e8f0;
+      min-height: 100vh; padding: 20px;
+      display: flex; justify-content: center;
+    }
+    .container { width: 100%; max-width: 900px; }
+
+    /* ---------- NAV ---------- */
+    .nav {
+      display: flex; gap: 10px; margin-bottom: 24px;
+      justify-content: center; flex-wrap: wrap;
+    }
+    .nav a {
+      color: #94a3b8; text-decoration: none;
+      padding: 8px 16px; border-radius: 8px;
+      background: #1e293b; font-size: 0.9rem;
+      transition: 0.2s; border: 1px solid transparent;
+    }
+    .nav a:hover { background: #334155; color: #e2e8f0; }
+    .nav a.active {
+      background: #38bdf8; color: #0f172a; font-weight: 600;
+      border-color: #38bdf8;
+    }
+
+    h1 {
+      text-align: center; margin-bottom: 20px;
+      font-size: 1.8rem; color: #38bdf8;
+    }
+
+    .camera-card, .form-card {
+      background: #1e293b; border-radius: 12px; padding: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      margin-bottom: 20px;
+    }
+    .form-card { padding: 20px; }
+
+    .video-wrapper {
+      position: relative; width: 100%; aspect-ratio: 4 / 3;
+      background: #000; border-radius: 8px; overflow: hidden;
+    }
+    #video {
+      width: 100%; height: 100%; object-fit: cover;
+      display: block; transform: scaleX(-1);
+    }
+
+    #status {
+      position: absolute; top: 12px; left: 12px;
+      padding: 6px 14px; border-radius: 20px;
+      background: rgba(0,0,0,0.6);
+      font-size: 0.9rem; font-weight: 600;
+    }
+    .status-idle    { color: #94a3b8; }
+    .status-success { color: #4ade80; }
+    .status-error   { color: #f87171; }
+
+    .controls { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+
+    button {
+      flex: 1; min-width: 140px;
+      padding: 10px 16px; border: none; border-radius: 8px;
+      font-size: 0.95rem; font-weight: 600;
+      cursor: pointer; transition: 0.2s;
+    }
+    .btn-primary { background: #38bdf8; color: #0f172a; }
+    .btn-primary:hover { background: #0ea5e9; }
+    .btn-success { background: #4ade80; color: #0f172a; }
+    .btn-success:hover { background: #22c55e; }
+    .btn-danger  { background: #f87171; color: #0f172a; }
+    .btn-danger:hover  { background: #ef4444; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .form-card h2 {
+      font-size: 1.2rem; margin-bottom: 14px;
+      color: #38bdf8;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .user-count {
+      font-size: 0.8rem; color: #94a3b8;
+      background: #0f172a; padding: 4px 12px;
+      border-radius: 20px; font-weight: 500;
+    }
+
+    .form-group { margin-bottom: 14px; }
+    label {
+      display: block; margin-bottom: 6px;
+      font-size: 0.9rem; color: #94a3b8;
+    }
+    input[type="text"] {
+      width: 100%; padding: 10px 14px;
+      background: #0f172a; border: 1px solid #334155;
+      border-radius: 8px; color: #e2e8f0; font-size: 0.95rem;
+    }
+    input[type="text"]:focus { outline: none; border-color: #38bdf8; }
+
+    .preview-box {
+      margin-top: 10px; display: none; text-align: center;
+    }
+    .preview-box img {
+      max-width: 180px; border-radius: 8px;
+      border: 2px solid #38bdf8;
+    }
+
+    #message {
+      margin-top: 12px; padding: 10px 14px;
+      border-radius: 8px; font-size: 0.9rem; display: none;
+      animation: slideIn 0.3s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    #message.show { display: block; }
+    #message.ok   { background: #064e3b; color: #4ade80; border-left: 4px solid #4ade80; }
+    #message.err  { background: #7f1d1d; color: #fca5a5; border-left: 4px solid #f87171; }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>📝 Register New User</h1>
+
+    <!-- NAV -->
+    <div class="nav">
+      <a href="/ui/home.html">🏠 Home</a>
+      <a href="/ui/index.html" class="active">📝 Register</a>
+      <a href="/ui/recognize.html">🎥 Recognize</a>
+      <a href="/ui/attendance.html">📋 Attendance</a>
+      <a href="/docs" target="_blank">📚 API Docs</a>
+    </div>
+
+    <div class="camera-card">
+      <div class="video-wrapper">
+        <video id="video" autoplay playsinline muted></video>
+        <div id="status" class="status-idle">Camera Off</div>
+      </div>
+
+      <div class="controls">
+        <button id="startBtn" class="btn-primary">▶ Start Camera</button>
+        <button id="stopBtn"  class="btn-danger" disabled>⏹ Stop</button>
+        <button id="captureBtn" class="btn-success" disabled>📸 Capture</button>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <h2>
+        👤 User Details
+        <span class="user-count" id="userCount">— users</span>
+      </h2>
+
+      <div class="form-group">
+        <label for="nameInput">Full Name</label>
+        <input type="text" id="nameInput" placeholder="e.g. Ali Khan" />
+      </div>
+
+      <div class="form-group">
+        <label>Captured Photo</label>
+        <div id="previewBox" class="preview-box">
+          <img id="previewImg" alt="Captured face" />
+        </div>
+        <small style="color:#64748b;">
+          Click "Capture" above to take a snapshot first.
+        </small>
+      </div>
+
+      <button id="registerBtn" class="btn-success" style="width:100%;" disabled>
+        ✅ Register User
+      </button>
+
+      <div id="message"></div>
+    </div>
+  </div>
+
+  <script>
+    const video       = document.getElementById('video');
+    const statusEl    = document.getElementById('status');
+    const startBtn    = document.getElementById('startBtn');
+    const stopBtn     = document.getElementById('stopBtn');
+    const captureBtn  = document.getElementById('captureBtn');
+    const registerBtn = document.getElementById('registerBtn');
+    const nameInput   = document.getElementById('nameInput');
+    const previewBox  = document.getElementById('previewBox');
+    const previewImg  = document.getElementById('previewImg');
+    const messageEl   = document.getElementById('message');
+    const userCountEl = document.getElementById('userCount');
+
+    let stream = null;
+    let capturedBlob = null;
+    const API_BASE = '';
+
+    function setStatus(text, type = 'idle') {
+      statusEl.textContent = text;
+      statusEl.className = 'status-' + type;
+    }
+
+    function showMessage(text, ok = true) {
+      messageEl.textContent = text;
+      messageEl.className = 'show ' + (ok ? 'ok' : 'err');
+      setTimeout(() => { messageEl.className = ''; }, 5000);
+    }
+
+    function getMedia(constraints) {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        return navigator.mediaDevices.getUserMedia(constraints);
+      }
+      const legacy =
+        navigator.getUserMedia ||
+        navigator.webkitGetUserMedia ||
+        navigator.mozGetUserMedia;
+      if (legacy) {
+        return new Promise((resolve, reject) => {
+          legacy.call(navigator, constraints, resolve, reject);
+        });
+      }
+      return Promise.reject(new Error(
+        'Camera API not available. Open via http://localhost:8000/ui/index.html'
+      ));
+    }
+
+    // ---------- User count ----------
+    async function refreshUserCount() {
+      try {
+        const res = await fetch('/users');
+        const data = await res.json();
+        userCountEl.textContent = `${data.length} user${data.length !== 1 ? 's' : ''}`;
+      } catch { userCountEl.textContent = '? users'; }
+    }
+
+    // ---------- START ----------
+    startBtn.addEventListener('click', async () => {
+      try {
+        if (location.protocol === 'file:') {
+          throw new Error('Open via http://localhost:8000/ui/index.html');
+        }
+        stream = await getMedia({
+          video: { width: { ideal: 640 }, height: { ideal: 480 } },
+          audio: false
+        });
+        video.srcObject = stream;
+        startBtn.disabled   = true;
+        stopBtn.disabled    = false;
+        captureBtn.disabled = false;
+        setStatus('● Live', 'success');
+      } catch (err) {
+        console.error(err);
+        setStatus('Camera Error', 'error');
+        showMessage('Could not access camera: ' + err.message, false);
+      }
+    });
+
+    // ---------- STOP ----------
+    stopBtn.addEventListener('click', () => {
+      if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+      video.srcObject = null;
+      startBtn.disabled    = false;
+      stopBtn.disabled     = true;
+      captureBtn.disabled  = true;
+      registerBtn.disabled = true;
+      setStatus('Camera Off', 'idle');
+    });
+
+    // ---------- CAPTURE ----------
+    captureBtn.addEventListener('click', () => {
+      if (!stream) return;
+      const canvas = document.createElement('canvas');
+      canvas.width  = video.videoWidth  || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob(blob => {
+        capturedBlob = blob;
+        previewImg.src = URL.createObjectURL(blob);
+        previewBox.style.display = 'block';
+        setStatus('📸 Captured', 'success');
+        updateRegisterBtn();
+      }, 'image/jpeg', 0.9);
+    });
+
+    nameInput.addEventListener('input', updateRegisterBtn);
+
+    function updateRegisterBtn() {
+      registerBtn.disabled = !(nameInput.value.trim() && capturedBlob);
+    }
+
+    // ---------- REGISTER ----------
+    registerBtn.addEventListener('click', async () => {
+      if (!capturedBlob || !nameInput.value.trim()) return;
+
+      setStatus('⏳ Registering...', 'idle');
+      registerBtn.disabled = true;
+
+      const formData = new FormData();
+      formData.append('name', nameInput.value.trim());
+      formData.append('file', capturedBlob, 'capture.jpg');
+
+      try {
+        const res = await fetch(`${API_BASE}/register`, {
+          method: 'POST',
+          body: formData
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || `HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        setStatus('✅ Registered', 'success');
+        showMessage(`User "${data.name}" registered (ID: ${data.id})`, true);
+        nameInput.value = '';
+        capturedBlob = null;
+        previewBox.style.display = 'none';
+        refreshUserCount();
+      } catch (err) {
+        console.error(err);
+        setStatus('❌ Failed', 'error');
+        showMessage('Registration failed: ' + err.message, false);
+      } finally {
+        updateRegisterBtn();
+      }
+    });
+
+    refreshUserCount();
+  </script>
+</body>
+</html>

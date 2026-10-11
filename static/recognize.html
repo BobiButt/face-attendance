@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recognize — Face Attendance</title>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: radial-gradient(circle at top, #1e293b 0%, #0f172a 60%);
+      color: #e2e8f0; min-height: 100vh; padding: 20px;
+      display: flex; justify-content: center;
+    }
+    .container { width: 100%; max-width: 900px; }
+
+    .nav {
+      display: flex; gap: 10px; margin-bottom: 24px;
+      justify-content: center; flex-wrap: wrap;
+    }
+    .nav a {
+      color: #94a3b8; text-decoration: none;
+      padding: 8px 16px; border-radius: 8px;
+      background: #1e293b; font-size: 0.9rem;
+      transition: 0.2s; border: 1px solid transparent;
+    }
+    .nav a:hover { background: #334155; color: #e2e8f0; }
+    .nav a.active {
+      background: #38bdf8; color: #0f172a; font-weight: 600;
+      border-color: #38bdf8;
+    }
+
+    h1 {
+      text-align: center; margin-bottom: 20px;
+      font-size: 1.8rem; color: #38bdf8;
+    }
+
+    .camera-card {
+      background: #1e293b; border-radius: 12px; padding: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    .video-wrapper {
+      position: relative; width: 100%; aspect-ratio: 4 / 3;
+      background: #000; border-radius: 8px; overflow: hidden;
+    }
+    #video {
+      width: 100%; height: 100%; object-fit: cover;
+      display: block; transform: scaleX(-1);
+    }
+
+    #resultBox {
+      position: absolute; bottom: 16px; left: 16px; right: 16px;
+      padding: 14px 20px; border-radius: 12px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 2px solid #334155;
+      text-align: center; font-size: 1.2rem; font-weight: 700;
+      transition: 0.3s;
+    }
+    .result-idle    { color: #94a3b8; border-color: #334155; }
+    .result-match   { color: #4ade80; border-color: #4ade80; background: rgba(6,78,59,0.9); }
+    .result-unknown { color: #f87171; border-color: #f87171; background: rgba(127,29,29,0.9); }
+    .result-noface  { color: #94a3b8; border-color: #334155; }
+
+    #similarity {
+      display: block; font-size: 0.75rem;
+      font-weight: 400; opacity: 0.8; margin-top: 4px;
+    }
+
+    #status {
+      position: absolute; top: 12px; left: 12px;
+      padding: 6px 14px; border-radius: 20px;
+      background: rgba(0,0,0,0.6);
+      font-size: 0.85rem; font-weight: 600;
+    }
+    .status-idle    { color: #94a3b8; }
+    .status-success { color: #4ade80; }
+    .status-error   { color: #f87171; }
+
+    /* FPS badge in top-right */
+    #fpsBadge {
+      position: absolute; top: 12px; right: 12px;
+      padding: 6px 14px; border-radius: 20px;
+      background: rgba(0,0,0,0.6);
+      font-size: 0.8rem; font-weight: 600; color: #38bdf8;
+      font-family: monospace;
+    }
+
+    .controls { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+    button {
+      flex: 1; min-width: 140px;
+      padding: 10px 16px; border: none; border-radius: 8px;
+      font-size: 0.95rem; font-weight: 600;
+      cursor: pointer; transition: 0.2s;
+    }
+    .btn-primary { background: #38bdf8; color: #0f172a; }
+    .btn-primary:hover { background: #0ea5e9; }
+    .btn-danger  { background: #f87171; color: #0f172a; }
+    .btn-danger:hover  { background: #ef4444; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>🎥 Live Recognition</h1>
+
+    <div class="nav">
+      <a href="/ui/home.html">🏠 Home</a>
+      <a href="/ui/index.html">📝 Register</a>
+      <a href="/ui/recognize.html" class="active">🎥 Recognize</a>
+      <a href="/ui/attendance.html">📋 Attendance</a>
+      <a href="/docs" target="_blank">📚 API Docs</a>
+    </div>
+
+    <div class="camera-card">
+      <div class="video-wrapper">
+        <video id="video" autoplay playsinline muted></video>
+        <div id="status" class="status-idle">Camera Off</div>
+        <div id="fpsBadge">FPS: —</div>
+        <div id="resultBox" class="result-idle">
+          Waiting...
+          <span id="similarity"></span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="startBtn" class="btn-primary">▶ Start Recognition</button>
+        <button id="stopBtn"  class="btn-danger" disabled>⏹ Stop</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const video     = document.getElementById('video');
+    const statusEl  = document.getElementById('status');
+    const resultBox = document.getElementById('resultBox');
+    const simEl     = document.getElementById('similarity');
+    const startBtn  = document.getElementById('startBtn');
+    const stopBtn   = document.getElementById('stopBtn');
+    const fpsBadge  = document.getElementById('fpsBadge');
+
+    let stream = null;
+    let intervalId = null;
+    let busy = false;
+
+    // FPS tracking
+    let frameCount = 0;
+    let lastFpsTime = performance.now();
+
+    function setStatus(text, type = 'idle') {
+      statusEl.textContent = text;
+      statusEl.className = 'status-' + type;
+    }
+    function setResult(text, type = 'idle', sim = null) {
+      resultBox.className = 'result-' + type;
+      resultBox.innerHTML = text + (sim !== null
+        ? `<span id="similarity">similarity: ${sim.toFixed(3)}</span>`
+        : '');
+    }
+    function getMedia(constraints) {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        return navigator.mediaDevices.getUserMedia(constraints);
+      }
+      const legacy = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+      if (legacy) return new Promise((res, rej) => legacy.call(navigator, constraints, res, rej));
+      return Promise.reject(new Error('Camera API not available. Use http://localhost:8000/ui'));
+    }
+    function grabFrame() {
+      const canvas = document.createElement('canvas');
+      canvas.width  = video.videoWidth  || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/jpeg', 0.7);
+    }
+
+    async function recognizeLoop() {
+      if (busy || !stream) return;
+      busy = true;
+      try {
+        const dataUrl = grabFrame();
+        const res = await fetch('/recognize-frame', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: dataUrl })
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+
+        if (data.matched) {
+          setResult(`✅ ${data.name}`, 'match', data.similarity);
+        } else if (data.similarity > 0) {
+          setResult('❓ Unknown person', 'unknown', data.similarity);
+        } else {
+          setResult('👀 No face detected', 'noface');
+        }
+      } catch (err) {
+        console.error(err);
+        setResult('⚠️ Server error', 'unknown');
+      } finally {
+        busy = false;
+      }
+    }
+
+    // FPS counter — update every 500ms
+    function updateFps() {
+      frameCount++;
+      const now = performance.now();
+      const elapsed = now - lastFpsTime;
+      if (elapsed >= 500) {
+        const fps = (frameCount * 1000 / elapsed).toFixed(1);
+        fpsBadge.textContent = `FPS: ${fps}`;
+        frameCount = 0;
+        lastFpsTime = now;
+      }
+      if (stream) requestAnimationFrame(updateFps);
+    }
+
+    startBtn.addEventListener('click', async () => {
+      try {
+        if (location.protocol === 'file:') {
+          throw new Error('Open via http://localhost:8000/ui/recognize.html');
+        }
+        stream = await getMedia({
+          video: { width: { ideal: 640 }, height: { ideal: 480 } },
+          audio: false
+        });
+        video.srcObject = stream;
+
+        startBtn.disabled = true;
+        stopBtn.disabled  = false;
+        setStatus('● Live', 'success');
+        setResult('Scanning...', 'idle');
+
+        intervalId = setInterval(recognizeLoop, 1500);
+        setTimeout(recognizeLoop, 500);
+        requestAnimationFrame(updateFps);
+      } catch (err) {
+        console.error(err);
+        setStatus('Camera Error', 'error');
+        setResult('❌ ' + err.message, 'unknown');
+      }
+    });
+
+    stopBtn.addEventListener('click', () => {
+      if (intervalId) { clearInterval(intervalId); intervalId = null; }
+      if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+      video.srcObject = null;
+      startBtn.disabled = false;
+      stopBtn.disabled  = true;
+      setStatus('Camera Off', 'idle');
+      setResult('Waiting...', 'idle');
+      fpsBadge.textContent = 'FPS: —';
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+# ============================================================
+# Python
+# ============================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv/
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ============================================================
+# Face Attendance Project
+# ============================================================
+# SQLite database (auto-created on first run)
+attendance.db
+*.db
+*.sqlite
+*.sqlite3
+
+# InsightFace downloaded models (~/.insightface or ./models/)
+models/
+*.onnx
+
+# Uploaded/captured images (if you add a feature later)
+uploads/
+captures/
+
+# ============================================================
+# IDE / Editor
+# ============================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ============================================================
+# OS
+# ============================================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ============================================================
+# Logs / Env
+# ============================================================
+*.log
+.env
+.env.local
