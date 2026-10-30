@@ -14,10 +14,11 @@ A real-time face recognition attendance system built with **FastAPI**, **Insight
 - 🎥 **Live Recognition** — auto-detects and identifies registered faces in real time
 - 📋 **Auto Attendance Log** — records every check-in with 30-second deduplication
 - 🏠 **Home Dashboard** — live stats, user list, delete users
-- 📊 **Attendance History** — view, filter (auto-refresh), and export to CSV
+- 📊 **Attendance History** — view, auto-refresh (5s), and export to CSV
 - 🔒 **Privacy-First** — stores 512-d embeddings, never raw photos
 - ⚡ **Lightweight** — runs at 20-30 FPS on a low-end CPU (MobileFaceNet model)
 - 🌐 **100% Browser-Based** — no desktop app needed
+- 🖥️ **Desktop Camera Mode** — standalone OpenCV script (`app/camera.py`) for local webcam recognition without a browser
 
 ---
 
@@ -164,6 +165,46 @@ Attendance is logged automatically.
 2. See all check-ins with timestamps
 3. Click **⬇ CSV** to export the data
 4. Toggle **Auto-refresh** on/off as needed
+
+---
+
+## 🖥️ Desktop Camera Mode (No Browser)
+
+Besides the browser UI, the project includes a standalone OpenCV script in `app/camera.py` that runs face recognition directly in a desktop window — no browser needed.
+
+### Run it
+
+```bash
+python -m app.camera
+```
+
+Or:
+
+```bash
+python app/camera.py
+```
+
+A window opens showing your webcam with:
+- 🟢 Green box around the detected face
+- 📛 Name + similarity label (e.g. `Ali Khan (0.87)`) or `Unknown`
+- ⌨️ Press **`q`** to quit
+
+### How it works
+
+- Detection runs **every frame** (fast).
+- Full recognition (embedding comparison against all registered users) runs **every N frames** (default: every 5th frame) to keep FPS high on low-end CPUs.
+- User embeddings are cached in memory at startup, so it doesn't hit the database on every frame.
+
+### Tweak it
+
+Edit `app/camera.py`:
+
+```python
+run_camera(engine, threshold=0.4, recognize_every=5)
+```
+
+- `threshold` — cosine similarity needed for a match (higher = stricter, fewer false positives).
+- `recognize_every` — run full recognition every N frames (lower = more frequent recognition, more CPU).
 
 ---
 
